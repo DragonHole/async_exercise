@@ -72,10 +72,9 @@ async fn request(tx: tokio::sync::mpsc::Sender<Msg>, id: i32) -> (Fork, Fork) {
     };
     // can i have two forks? 
     tx.send(m).await;
-    
+
     let result: Option<Msg> = recv_side.recv().await;
 
-    // this is SUPER ugly, fix it up later pls
     let mut ready_forks = (-2, -2);
     match result {
         // implicit handling here results in either the inner wrapped value or panic
@@ -93,7 +92,7 @@ async fn eat(tx: tokio::sync::mpsc::Sender<Msg>, forks: (Fork, Fork), id: i32) {
 
     // give back the forks to the waiter since i'm done eating
     let m: Msg = Msg{ 
-        cmd     : 0, 
+        cmd     : 2, 
         who     : id,
         re_chan : None,
         forks   : (Some(forks.0), Some(forks.1))
@@ -104,7 +103,7 @@ async fn eat(tx: tokio::sync::mpsc::Sender<Msg>, forks: (Fork, Fork), id: i32) {
 }
 
 async fn think(id: i32, deep_think: tokio::sync::mpsc::Receiver<bool>) { 
-    for _i in 1..=50 {
+    for _i in 1..=5 {
         println!("{}: thinking", id);  // a little caveat, might handle later TODO, async callback/non-block msg passing, maybe poll_recv
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;  
     }
@@ -189,6 +188,9 @@ fn main() {
                     forks[first_fork as usize] = 0;
                     forks[second_fork as usize] = 0;
                 }
+                else {
+                    println!("Waiter: forks ({}, {}) not available, you can keep thinking!", first_fork, second_fork);
+                }
                 // else { // forks not available, keep thinking!
                 //     let r: Msg = Msg { 
                 //         cmd     : 1, 
@@ -197,7 +199,7 @@ fn main() {
                 //         forks   : (None, None)
                 //     };
                     
-                     println!("Waiter: sorry, the forks({}, {}) you want aren't available", first_fork, second_fork);
+                //     println!("Waiter: sorry, the forks({}, {}) you want aren't available", first_fork, second_fork);
                 //     m.re_chan.unwrap().blocking_send(r);
                 // }
             } 
